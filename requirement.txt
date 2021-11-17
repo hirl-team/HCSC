@@ -1,0 +1,14 @@
+argparse
+torch==1.8.1+cu102
+torchvision==0.9.1+cu102
+numpy
+faiss-gpu
+matplotlib
+tensorboard==2.7.0
+tensorboardX==2.4
+scikit-learn
+scipy
+shapely
+tqdm
+Pillow==8.4.0
+urllib3
