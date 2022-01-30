@@ -1,5 +1,6 @@
 import argparse
 import builtins
+import logging
 import math
 import os
 import random
@@ -9,7 +10,6 @@ import warnings
 from tqdm import tqdm
 import numpy as np
 import faiss
-
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -20,23 +20,25 @@ import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.models as models
+from datetime import timedelta
 
 import math
 import os, sys
 import numpy as np
 import torch
 import hcsc.loader
+import hcsc
 from hcsc.hcsc import HCSC
+
 from hcsc.logger import EasyLogger
 from utils.options import parse_args_main
+from utils.dist import init_distributed_mode
 
-model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
 
 def build_model(args, logger):
+    backbone = models.__dict__[args.arch]
     model = HCSC(
-        models.__dict__[args.arch],
+        backbone,
         args.dim,
         args.queue_length,
         args.m,
@@ -52,123 +54,51 @@ def build_model(args, logger):
 def build_dataloaders(args):
     return getattr(hcsc.loader, args.dataset)(args)
 
-def main():
-    args = parse_args_main()
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
-        warnings.warn('You have chosen to seed training. '
-                      'This will turn on the CUDNN deterministic setting, '
-                      'which can slow down your training considerably! '
-                      'You may see unexpected behavior when restarting '
-                      'from checkpoints.')
 
-    if args.gpu is not None:
-        warnings.warn('You have chosen a specific GPU. This will completely '
-                      'disable data parallelism.')
-
-    if args.dist_url == "env://" and args.world_size == -1:
-        args.world_size = int(os.environ["WORLD_SIZE"])
-
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
-    
-    args.num_cluster = args.num_cluster.split(',')
-    
-    if not os.path.exists(args.exp_dir):
-        os.makedirs(args.exp_dir)
-    
-    ngpus_per_node = torch.cuda.device_count()
-    if args.multiprocessing_distributed:
-        # Since we have ngpus_per_node processes per node, the total world_size
-        # needs to be adjusted accordingly
-        args.world_size = ngpus_per_node * args.world_size
-        # Use torch.multiprocessing.spawn to launch distributed processes: the
-        # main_worker process function
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
-    else:
-        # Simply call main_worker function
-        main_worker(args.gpu, ngpus_per_node, args)
-
-
-def main_worker(gpu, ngpus_per_node, args):
-    args.gpu = gpu
-    
-    if args.gpu is not None:
-        print("Use GPU: {} for training".format(args.gpu))
-
-    # suppress printing if not master    
-    if args.multiprocessing_distributed and args.gpu != 0:
-        def print_pass(*args):
-            return
-
-        builtins.print = print_pass
-    if args.distributed:
-        if args.dist_url == "env://" and args.rank == -1:
-            args.rank = int(os.environ["RANK"])
-        if args.multiprocessing_distributed:
-            # For multiprocessing distributed training, rank needs to be the
-            # global rank among all the processes
-            args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                world_size=args.world_size, rank=args.rank)
-
-    logger = EasyLogger(args.exp_dir, 0, args.rank)
-    ## distributed setup
-    if args.distributed:
-        if args.gpu is not None:
-            args.batch_size = int(args.batch_size / ngpus_per_node)
-            args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-    # create dataset
-    train_loader, eval_loader, train_dataset, eval_dataset, train_sampler = build_dataloaders(args)
-    args.dataset_size = len(train_dataset)
-    # create model
-    print("=> creating model '{}'".format(args.arch))
-    model = build_model(args, logger)
-
-    if args.distributed:
-        # For multiprocessing distributed, DistributedDataParallel constructor
-        # should always set the single device scope, otherwise,
-        # DistributedDataParallel will use all available devices.
-        if args.gpu is not None:
-            torch.cuda.set_device(args.gpu)
-            model.cuda(args.gpu)
-            # When using a single GPU per process and per
-            # DistributedDataParallel, we need to divide the batch size
-            # ourselves based on the total number of GPUs we have
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-        else:
-            model.cuda()
-            # DistributedDataParallel will divide and allocate batch_size to all
-            # available GPUs if device_ids are not set
-            model = torch.nn.parallel.DistributedDataParallel(model)
-    elif args.gpu is not None:
-        torch.cuda.set_device(args.gpu)
-        model = model.cuda(args.gpu)
-        # comment out the following line for debugging
-        raise NotImplementedError("Only DistributedDataParallel is supported.")
-    else:
-        # AllGather implementation (batch shuffle, queue update, etc.) in
-        # this code only supports DistributedDataParallel.
-        raise NotImplementedError("Only DistributedDataParallel is supported.")
-
-    # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+def build_optimizer(args, model):
+    total_batch_size = args.batch_size * dist.get_world_size()
+    ## scale up the batch size
+    args.lr = args.lr * total_batch_size / 256
+    print("total batch size is {}, lr is scaled up to {}".format(total_batch_size, args.lr))
 
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+                            momentum=args.momentum,
+                            weight_decay=args.weight_decay)
+    return optimizer
 
+def main():
+    args = parse_args_main()
+    init_distributed_mode(args)
+    
+
+    args.num_cluster = args.num_cluster.split(',')
+    if not os.path.exists(args.exp_dir):
+        os.makedirs(args.exp_dir, exist_ok=True)
+    
+    logger = EasyLogger(args.exp_dir, 0, args.rank)
+    # create dataset
+    train_loader, eval_loader, train_dataset, eval_dataset, train_sampler = build_dataloaders(args)
+    dist.barrier()
+    args.dataset_size = len(train_dataset)
+    # create model
+    if args.rank == 0:
+        print("=> creating model '{}'".format(args.arch))
+    model = build_model(args, logger)
+    model = model.to(args.device)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank)
+
+    # define loss function (criterion) and optimizer
+    criterion = nn.CrossEntropyLoss().to(args.device)
+
+    optimizer = build_optimizer(args, model)
+    scheduler = adjust_learning_rate
+    
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
-            if args.gpu is None:
-                checkpoint = torch.load(args.resume)
-            else:
-                # Map model to be loaded to specified single gpu.
-                loc = 'cuda:{}'.format(args.gpu)
-                checkpoint = torch.load(args.resume, map_location=loc)
+            checkpoint = torch.load(args.resume, map_location=args.device)
+
             args.start_epoch = checkpoint['epoch']
             model.load_state_dict(checkpoint['state_dict'], strict=False)
             if "optimizer" in checkpoint:
@@ -182,13 +112,11 @@ def main_worker(gpu, ngpus_per_node, args):
 
     cudnn.benchmark = True
     
-    
     for epoch in range(args.start_epoch, args.epochs):
         logger.set_epoch(epoch)
         if hasattr(model.module, "set_epoch"):
             model.module.set_epoch(epoch)
         cluster_result = None
-        dist_to_ancestors = None
         if epoch >= args.warmup_epoch:
             # compute momentum features for center-cropped images
             features = compute_features(eval_loader, model, args)         
@@ -201,7 +129,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 if i < (len(args.num_cluster) - 1):
                     cluster_result['cluster2cluster'].append(torch.zeros(int(num_cluster), dtype=torch.long).cuda())
                     cluster_result['logits'].append(torch.zeros([int(num_cluster), int(args.num_cluster[i+1])]).cuda())
-            if args.gpu == 0:
+            if dist.get_rank() == 0:
                 features[torch.norm(features,dim=1)>1.5] /= 2 
                 features = features.numpy()
                 cluster_result = run_hkmeans(features,args)  
@@ -216,15 +144,13 @@ def main_worker(gpu, ngpus_per_node, args):
                 for data_tensor in data_list:                
                     dist.broadcast(data_tensor, 0, async_op=False)   
             
-        if args.distributed:
-            train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch, args)
+        train_sampler.set_epoch(epoch)
+        scheduler(optimizer, epoch, args)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, args, cluster_result)
 
-        if (epoch+1)%5==0 and (not args.multiprocessing_distributed or (args.multiprocessing_distributed
-                and args.rank % ngpus_per_node == 0)):
+        if (epoch+1)%5==0 and dist.get_rank()==0:
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
@@ -237,9 +163,6 @@ def train(train_loader, model, criterion, optimizer, epoch, args, cluster_result
     data_time = AverageMeter('Data', ':6.3f')
     losses = dict()
     acc_inst = dict()
-    for k in range(len(args.num_cluster)):
-        losses[f'InsLoss_{k}'] = AverageMeter(f'InsLoss_{k}', ':.4e')
-        acc_inst[f'Acc@Inst{k}'] = AverageMeter(f'Acc@Inst{k}', ':6.2f')
     losses['InsLoss_sum'] = AverageMeter('InsLoss_sum', ':.4e')
     acc_inst['Acc@Inst_avg'] = AverageMeter('Acc@Inst_avg', ':6.2f')
     acc_proto = AverageMeter('Acc@Proto', ':6.2f')
@@ -257,8 +180,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, cluster_result
     for i, (images, index) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
-        if args.gpu is not None:
-            images = [image.cuda(args.gpu, non_blocking=True) for image in images]
+        images = [image.to(args.device) for image in images]
                 
         # compute output
         output, target, output_proto, target_proto, local_logits, local_labels, local_proto_logits, local_proto_targets = model(images, 
@@ -272,9 +194,13 @@ def train(train_loader, model, criterion, optimizer, epoch, args, cluster_result
             for k, (out, tar) in enumerate(zip(output, target)):
                 loss = criterion(out, tar)
                 loss_total += loss
-                losses[f'InsLoss_{k}'].update(loss.item(), images[0].size(0))
+                if f'InsLoss_{k}' not in buffer_meter:
+                    buffer_meter[f'InsLoss_{k}'] = AverageMeter(f'InsLoss_{k}', ':.4e')
+                buffer_meter[f'InsLoss_{k}'].update(loss.item(), images[0].size(0))
                 acc = accuracy(out, tar)[0] 
-                acc_inst[f'Acc@Inst{k}'].update(acc[0], images[0].size(0))
+                if f'Acc@Inst{k}' not in buffer_meter:
+                    buffer_meter[f'Acc@Inst{k}'] = AverageMeter(f'Acc@Inst{k}', ":6.2f")
+                buffer_meter[f'Acc@Inst{k}'].update(acc[0], images[0].size(0))
                 losses['InsLoss_sum'].update(loss.item(), images[0].size(0))
                 acc_inst['Acc@Inst_avg'].update(acc[0], images[0].size(0))
                 loss = loss_total
@@ -332,7 +258,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args, cluster_result
         end = time.time()
 
         if i % args.print_freq == 0:
-            progress.display(i)
+            if dist.get_rank() == 0:
+                progress.display(i)
 
 def compute_features(eval_loader, model, args):
     print('Computing features...')
@@ -372,7 +299,7 @@ def run_hkmeans(x, args):
         res = faiss.StandardGpuResources()
         cfg = faiss.GpuIndexFlatConfig()
         cfg.useFloat16 = False
-        cfg.device = args.gpu    
+        cfg.device = args.local_rank  
         index = faiss.GpuIndexFlatL2(res, d, cfg)  
         if seed==0: # the first hierarchy from instance directly
             clus.train(x, index)   
@@ -397,7 +324,6 @@ def run_hkmeans(x, args):
             results['cluster2cluster'].append(torch.LongTensor(im2cluster).cuda())
             im2cluster = im2cluster[results['im2cluster'][seed - 1].cpu().numpy()]
             im2cluster = list(im2cluster)
-            print("cluster assignment of 10 samples:", im2cluster[:10])
     
         if len(set(im2cluster))==1:
             print("Warning! All samples are assigned to one cluster")

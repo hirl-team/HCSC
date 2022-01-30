@@ -16,6 +16,20 @@ pip3 install -r requirement.txt
 If having trouble installing PyTorch, follow the original guidance (https://pytorch.org/).
 Notably, the code is tested with cudatoolkit version 10.2.
 
+## Catalog
+- [ ] Release 800 epochs models
+- [ ] Vision transformer backbone support 
+
+## Model Zoo
+
+We release our pre-trained HCSC models for reproduction:  
+
+| Backbone | Method | Crop | Epoch | Batch size | Lincls top-1 Acc. | KNN top-1 Acc. | url |
+|---------------------|-----------------|---------------------|--------------------|--------------------|----------------------|----------------------|-------------------|
+| ResNet-50 | HCSC | Single | 200 | 256 | 69.2 | 60.7 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_200eps.pth) |
+| ResNet-50 | HCSC | Multi | 200 | 256 | 73.7 | 66.8 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_multicrop_200eps.pth) |
+| ResNet-50 | HCSC | Single | 400 | 256 | 70.6 | 63.4 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_400eps.pth) |
+
 
 ## Usage
 ### Pre-training on ImageNet
@@ -25,16 +39,14 @@ Download [ImageNet](https://image-net.org/challenges/LSVRC/2012/) dataset under 
 
 Single Crop Pre-training:
 ```
-python3 pretrain.py --dist-url tcp://localhost:10205 \
---multiprocessing-distributed --world-size 1 --rank 0 \
-[your ImageNet Folder]
+python3 -m torch.distributed.launch --master_port 29212 --nproc_per_node=1 \
+pretrain.py [your ImageNet Folder]
 ```
 
 Multi Crop Pre-training:
 ```
-python3 pretrain.py --dist-url tcp://localhost:10205 \
---multiprocessing-distributed --world-size 1 --rank 0 \
---multicrop [your ImageNet Folder]
+python3 -m torch.distributed.launch --master_port 29212 --nproc_per_node=1 \
+pretrain.py --multicrop [your ImageNet Folder]
 ```
 
 ### Linear Classification on ImageNet

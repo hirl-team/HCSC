@@ -41,6 +41,8 @@ def parse_args_main():
                         help='node rank for distributed training')
     parser.add_argument('--dist-url', default='tcp://localhost:10034', type=str,
                         help='url used to set up distributed training')
+    parser.add_argument("--local_rank", default=0, type=int,
+                    help="this argument is not used and should be ignored")
     parser.add_argument('--dist-backend', default='nccl', type=str,
                         help='distributed backend')
     parser.add_argument('--seed', default=None, type=int,
@@ -76,14 +78,14 @@ def parse_args_main():
     parser.add_argument('--multi_crop', action='store_true',
                         default=False,
                         help='Whether to enable multi-crop transformation')
-    parser.add_argument("--nmb_crops", type=int, default=[1, 1, 1, 1, 1], nargs="+",
-                        help="list of number of crops (example: [2, 6])") 
-    parser.add_argument("--size_crops", type=int, default=[224, 192, 160, 128, 96], nargs="+",
-                        help="crops resolutions (example: [224, 96])")
-    parser.add_argument("--min_scale_crops", type=float, default=[0.2, 0.172, 0.143, 0.114, 0.086], nargs="+",
-                        help="argument in RandomResizedCrop (example: [0.14, 0.05])")
-    parser.add_argument("--max_scale_crops", type=float, default=[1.0, 0.86, 0.715, 0.571, 0.429], nargs="+",
-                        help="argument in RandomResizedCrop (example: [1., 0.14])")
+    parser.add_argument("--nmb_crops", type=int, default=[2, 8], nargs="+",
+                        help="list of number of crops") 
+    parser.add_argument("--size_crops", type=int, default=[224, 96], nargs="+",
+                        help="crops resolutions")
+    parser.add_argument("--min_scale_crops", type=float, default=[0.2, 0.05], nargs="+",
+                        help="argument in RandomResizedCrop ")
+    parser.add_argument("--max_scale_crops", type=float, default=[1.0, 0.32], nargs="+",
+                        help="argument in RandomResizedCrop")
 
     ## Selection configs
     parser.add_argument("--selection_on_local", action="store_true", default=False,
@@ -93,8 +95,6 @@ def parse_args_main():
                         help="Whether enable instance selection")
     parser.add_argument("--proto_selection", type=int, default=1,
                         help="Whether enable prototype selection")              
-
-    parser.add_argument('--debug', action='store_true', default=False)
     parser.add_argument('--exp-dir', default='experiment_pcl', type=str,
                         help='experiment directory')
 
