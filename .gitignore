@@ -1,0 +1,14 @@
+# PyCharm
+/.idea
+
+# Sphinx
+/doc/build
+
+# Python
+__pycache__
+*.pyc
+*.egg-info
+
+# macOS
+.DS_Store
+*/.DS_Store
