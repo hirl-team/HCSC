@@ -26,9 +26,9 @@ We will continually release our pre-trained HCSC model weights and corresponding
 
 | Backbone | Method | Crop | Epoch | Batch size | Lincls top-1 Acc. | KNN top-1 Acc. | url | config |
 |---------------------|-----------------|---------------------|--------------------|--------------------|----------------------|----------------------|-------------------|-------------------|
-| ResNet-50 | HCSC | Single | 200 | 256 | 69.2 | 60.7 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_200eps.pth) |  |
-| ResNet-50 | HCSC | Multi | 200 | 256 | 73.3 | 66.6 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_multicrop_200eps.pth) |  |
-| ResNet-50 | HCSC | Single | 400 | 256 | 70.6 | 63.4 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_400eps.pth) |  |
+| ResNet-50 | HCSC | Single | 200 | 256 | 69.2 | 60.7 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_200eps.pth) | [config](configs/single_crop_200eps_bs256.yaml) |
+| ResNet-50 | HCSC | Multi | 200 | 256 | 73.3 | 66.6 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_multicrop_200eps.pth) | [config](configs/multi_crop_200eps_bs256.yaml) |
+| ResNet-50 | HCSC | Single | 400 | 256 | 70.6 | 63.4 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_400eps.pth) | [config](configs/single_crop_400eps_bs256.yaml) |
 
 ## Installation
 
