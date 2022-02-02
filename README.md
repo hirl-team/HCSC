@@ -1,5 +1,5 @@
 # HCSC: Hierarchical Contrastive Selective Coding
-This repository provides a PyTorch implementation and model weights for HCSC (**H**ierarchical **C**ontrastive **S**elective **C**oding), whose details are in [this paper](). 
+This repository provides a PyTorch implementation and model weights for HCSC (**H**ierarchical **C**ontrastive **S**elective **C**oding), whose details are in [this paper](https://arxiv.org/pdf/2202.00455.pdf). 
 
 <p align="center">
   <img src="docs/framework.png" /> 
@@ -173,7 +173,7 @@ If you find this repository useful, please kindly consider citing the following 
 @article{guo2022hcsc,
   title={HCSC: Hierarchical Contrastive Selective Coding},
   author={Guo, Yuanfan and Xu, Minghao and Li, Jiawen and Ni, Bingbing and Zhu, Xuanyu and Sun, Zhenbang and Xu, Yi},
-  journal={arXiv preprint arXiv:},
+  journal={arXiv preprint arXiv:2202.00455},
   year={2022}
 }
 ```
