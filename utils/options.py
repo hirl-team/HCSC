@@ -33,8 +33,7 @@ def parse_args_main():
                         metavar='N', help='print frequency (default: 10)')
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
-    parser.add_argument('--pretrained', default='', type=str,
-                        help='pretrained backbone')
+
     parser.add_argument('--world-size', default=-1, type=int,
                         help='number of nodes for distributed training')
     parser.add_argument('--rank', default=-1, type=int,
@@ -43,18 +42,11 @@ def parse_args_main():
                         help='url used to set up distributed training')
     parser.add_argument("--local_rank", default=0, type=int,
                     help="this argument is not used and should be ignored")
-    parser.add_argument('--dist-backend', default='nccl', type=str,
-                        help='distributed backend')
+
     parser.add_argument('--seed', default=None, type=int,
                         help='seed for initializing training. ')
     parser.add_argument('--gpu', default=None, type=int,
                         help='GPU id to use.')
-    parser.add_argument('--multiprocessing-distributed', action='store_true',
-                        help='Use multi-processing distributed training to launch '
-                            'N processes per node, which has N GPUs. This is the '
-                            'fastest way to use PyTorch for either single node or '
-                            'multi node data parallel training')
-
     parser.add_argument('--dim', default=128, type=int,
                         help='feature dimension')
     parser.add_argument('--queue_length', default=16384, type=int,
@@ -78,13 +70,13 @@ def parse_args_main():
     parser.add_argument('--multi_crop', action='store_true',
                         default=False,
                         help='Whether to enable multi-crop transformation')
-    parser.add_argument("--nmb_crops", type=int, default=[2, 8], nargs="+",
+    parser.add_argument("--nmb_crops", type=int, default=[1,1,1,1,1], nargs="+",
                         help="list of number of crops") 
-    parser.add_argument("--size_crops", type=int, default=[224, 96], nargs="+",
+    parser.add_argument("--size_crops", type=int, default=[224, 192, 160, 128, 96], nargs="+",
                         help="crops resolutions")
-    parser.add_argument("--min_scale_crops", type=float, default=[0.2, 0.05], nargs="+",
+    parser.add_argument("--min_scale_crops", type=float, default=[0.2, 0.172, 0.143, 0.114, 0.086], nargs="+",
                         help="argument in RandomResizedCrop ")
-    parser.add_argument("--max_scale_crops", type=float, default=[1.0, 0.32], nargs="+",
+    parser.add_argument("--max_scale_crops", type=float, default=[1.0, 0.86, 0.715, 0.571, 0.429], nargs="+",
                         help="argument in RandomResizedCrop")
 
     ## Selection configs
@@ -158,9 +150,6 @@ def parse_args_lincls_imagenet():
     parser.add_argument("--final_lr", type=float, default=0.0, help="ending learning rate for training")
     parser.add_argument('--save_path', default="", type=str, help="model and record save path")
     parser.add_argument('--log_path', type=str, default="train_log", help="log path for saving models")
-    parser.add_argument("--ngpu", type=int, default=8, help="number of gpus per node")
-    parser.add_argument("--master_addr", type=str, default="127.0.0.1", help="addr for master node")
-    parser.add_argument("--master_port", type=str, default="1234", help="port for master node")
 
     args = parser.parse_args()
     return args
@@ -222,18 +211,11 @@ def parse_args_lincls_places():
                         help='path to moco pretrained checkpoint')
     parser.add_argument('--choose', type=str, default=None, help="choose gpu for training")
     parser.add_argument("--dataset", type=str, default="ImageNet", help="which dataset is used to finetune")
-    parser.add_argument("--strong", type=int, default=0, help="use strong augmentation or not")
+
     parser.add_argument("--final_lr", type=float, default=0.01, help="ending learning rate for training")
     parser.add_argument('--save_path', default="", type=str, help="model and record save path")
     parser.add_argument('--log_path', type=str, default="train_log", help="log path for saving models")
-    parser.add_argument("--nodes_num", type=int, default=1, help="number of nodes to use")
-    parser.add_argument("--ngpu", type=int, default=8, help="number of gpus per node")
-    parser.add_argument("--master_addr", type=str, default="127.0.0.1", help="addr for master node")
-    parser.add_argument("--master_port", type=str, default="1234", help="port for master node")
-    parser.add_argument('--node_rank', type=int, default=0, help='rank of machine, 0 to nodes_num-1')
-    parser.add_argument("--avg_pool", default=1, type=int, help="average pool output size")
-    parser.add_argument("--crop_scale", type=float, default=[0.2, 1.0], nargs="+",
-                        help="argument in RandomResizedCrop (example: [1., 0.14])")
+
     parser.add_argument("--train_strong", type=int, default=1, help="training use stronger augmentation or not")
     parser.add_argument("--sgdr_t0", type=int, default=10, help="sgdr t0")
     parser.add_argument("--sgdr_t_mult", type=int, default=1, help="sgdr t mult")
@@ -263,7 +245,7 @@ def parse_semisup_args():
     parser.add_argument("--batch_size", default=32, type=int,
                         help="batch size per gpu, i.e. how many unique instances per gpu")
     parser.add_argument("--lr", default=0.005, type=float, help="initial learning rate - trunk")
-    parser.add_argument("--lr_last_layer", default=0.05, type=float, help="initial learning rate - head")
+    parser.add_argument("--lr_last_layer", default=0.02, type=float, help="initial learning rate - head")
     parser.add_argument("--decay_epochs", type=int, nargs="+", default=[30, 60],
                         help="Epochs at which to decay learning rate.")
     parser.add_argument("--gamma", type=float, default=0.1, help="lr decay factor")

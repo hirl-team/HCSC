@@ -16,7 +16,6 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.optim
-import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.models as models
@@ -32,7 +31,7 @@ from hcsc.hcsc import HCSC
 
 from hcsc.logger import EasyLogger
 from utils.options import parse_args_main
-from utils.dist import init_distributed_mode
+from utils.utils import init_distributed_mode
 
 
 def build_model(args, logger):

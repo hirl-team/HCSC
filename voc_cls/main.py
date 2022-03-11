@@ -55,8 +55,7 @@ def main(args,data_dir, model_name, num, lr, epochs, batch_size = 16, download_d
         if k.startswith('module.encoder_q') and not k.startswith('module.encoder_q.fc'):
             # remove prefix
             state_dict[k[len("module.encoder_q."):]] = state_dict[k]
-        # delete renamed or unused k
-        del state_dict[k]
+
     msg = model.load_state_dict(state_dict, strict=False)
     assert set(msg.missing_keys) == {"fc.weight", "fc.bias"}
 
