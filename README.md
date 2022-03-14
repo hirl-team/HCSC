@@ -61,12 +61,20 @@ pretrain.py --multicrop [your ImageNet Folder]
 
 ## Downstream Evaluation
 
-### Evaluation: Linear Classification on ImageNet
+### <a name="lincls"></a> Evaluation: Linear Classification on ImageNet
 
 With a pre-trained model, to train a supervised linear classifier with all available GPUs, run:
 ```
 python3 eval_lincls_imagenet.py --data [your ImageNet Folder] \
 --dist-url tcp://localhost:10001 --world-size 1 --rank 0 \
+--pretrained [your pre-trained model (example:out.pth)]
+```
+
+*Note*: for single-gpu evaluation, turn off the `multiprocessing-distributed`. For example, run:
+```
+python3 eval_lincls_imagenet.py --data [your ImageNet Folder] \
+--dist-url tcp://localhost:10001 --world-size 1 --rank 0 \
+--multiprocessing-distributed 0 --gpu 0 \
 --pretrained [your pre-trained model (example:out.pth)]
 ```
 
@@ -100,6 +108,13 @@ python3 -m torch.distributed.launch --nproc_per_node 8 --master_port [your port]
 [your ImageNet Folder]
 ```
 
+*Note*: for single-gpu evaluation, start the script without `torch.distributed.launch`. Remember to modify the `--batch_size` because it is the batch-size-per-gpu. Example:
+```
+python3 eval_semisup.py --labels_perc 1 \
+--batch_size 256 --pretrained [your pretrained weights] \
+[your ImageNet Folder]
+```
+
 ### Evaluation: Transfer Learning - Classification on VOC / Places205
 
 #### VOC
@@ -123,6 +138,8 @@ python3 eval_lincls_places.py --data [your places205 data folder] \
 --data-url tcp://localhost:10001 \
 --pretrained [your pretrained weights]
 ```
+
+*Note*: for single-gpu evaluation, see [instruction above](#lincls).
 
 ### Evaluation: Transfer Learning - Object Detection on VOC / COCO
 
