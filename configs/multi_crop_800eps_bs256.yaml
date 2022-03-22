@@ -1,0 +1,25 @@
+dataset: imagenet
+arch: resnet50
+workers: 32
+epochs: 800
+start-epoch: 0
+batch-size: 256
+learning-rate: 0.03
+lr_final: 0.
+momentum: 0.9
+weight-decay: 1e-4
+dim: 128
+queue_length: 16384
+m: 0.999
+T: 0.2
+mlp: 1
+aug-plus: 1
+cos: 1
+num-cluster: 3000,2000,1000
+warmup-epoch: 80
+multi-crop: 1
+nmb_crops: 1 1 1 1 1
+size_crops: 224 192 160 128 96
+min_scale_crops: 0.2 0.172 0.143 0.114 0.086
+max_scale_crops: 1.0 0.86 0.715 0.571 0.429
+selection_on_local: 1

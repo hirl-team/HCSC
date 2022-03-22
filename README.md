@@ -14,10 +14,11 @@ HCSC has achieved SOTA performance on the self-supervised pre-training of CNNs (
 ### Roadmap
 - [2022/02/01] The initial release! We release all source code for pre-training and downstream evaluation. We release three pre-trained ResNet-50 models: 200 epochs (single-crop), 200 epochs (multi-crop) and 400 epochs (single-crop, batch size: 256).
 - [2022/03/03] More checkpoints released! We update the 400 epochs single-crop model (with 71.0 linear classification accuracy, 64.1 KNN accuracy) and add two new pre-trained ResNet-50 models: 400 epochs (multi-crop, batch size: 256) and 800 epochs (single-crop, batch size: 256).
+- [2022/03/22] 800 epochs multi-crop model (batch size: 256) released! This pre-trained model achieves 74.2 linear classification accuracy and 70.6 KNN accuracy.
 
 ### TODO
 - [x] Finish the pre-training of 400 epochs ResNet-50 models (multi-crop) and release.
-- [ ] Finish the pre-training of 800 epochs ResNet-50 models (single- & multi-crop) and release.
+- [x] Finish the pre-training of 800 epochs ResNet-50 models (single- & multi-crop) and release.
 - [ ] Support Vision Transformer backbones.
 - [ ] Pre-train Vision Transformers with HCSC and release model weights under various configurations.
 
@@ -32,6 +33,7 @@ We will continually release our pre-trained HCSC model weights and corresponding
 | ResNet-50 | HCSC | Single | 400 | 256 | 71.0 | 64.1 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_400eps.pth) | [config](configs/single_crop_400eps_bs256.yaml) |
 | ResNet-50 | HCSC | Multi | 400 | 256 | 74.1 | 69.9 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_multicrop_400eps.pth) | [config](configs/multi_crop_400eps_bs256.yaml) |
 | ResNet-50 | HCSC | Single | 800 | 256 | 72.0 | 64.5 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_800eps.pth) | [config](configs/single_crop_800eps_bs256.yaml) |
+| ResNet-50 | HCSC | Multi | 800 | 256 | 74.2 | 70.6 | [model](https://hcscpretrained.s3.us-east-2.amazonaws.com/hcsc_multicrop_800eps.pth) | [config](configs/multi_crop_800eps_bs256.yaml) |
 
 ## Installation
 
